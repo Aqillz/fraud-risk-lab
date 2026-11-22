@@ -1,55 +1,127 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="Explore credit card fraud scoring using an interactive synthetic transaction model.">
-<title>Fraud Risk Lab · Danial Aqil</title>
-<link rel="stylesheet" href="style.css">
-<script defer src="app.js"></script>
-<script defer src="results.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="Score a fictional transaction and explore the results of a Kaggle credit card fraud prediction experiment.">
+  <title>Fraud Risk Lab · Danial Aqil</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="app.js"></script>
+  <script defer src="results.js"></script>
 </head>
 <body>
-<header><div class="shell bar"><a class="brand" href="./">Fraud Risk Lab</a><nav aria-label="Sections"><a href="#results">Results</a><a href="#demo">Try the model</a><a href="https://www.kaggle.com/competitions/playground-series-s6e11">Kaggle ↗</a></nav></div></header>
-<main class="shell">
-<section class="intro">
-<p class="kicker">Kaggle Playground Series S6E11</p>
-<h1>Predicting credit card fraud</h1>
-<p class="subtitle">A LightGBM ranking experiment by Danial Aqil. Explore ten submissions, then test how changes to a sample transaction affect an educational model.</p>
-</section>
-<section id="results" aria-labelledby="results-title">
-<h2 id="results-title">Competition results</h2>
-<dl class="stats"><div><dt>Best public ROC-AUC</dt><dd>0.94856</dd></div><div><dt>Mean fold ROC-AUC</dt><dd>0.946537</dd></div><div><dt>Recorded training time</dt><dd>8 min 18 s</dd></div></dl>
-<div class="grid results-grid">
-<figure class="panel trend"><h3>Public ROC-AUC by submission</h3><canvas id="score-chart" role="img" aria-label="Public ROC-AUC rose from 0.94618 on submission 1 to 0.94856 on submission 10. The full series is listed below."></canvas>
-<figcaption>Submission 10 was the best of ten, up 0.00238 from the first entry.</figcaption>
-<details><summary>View all 10 scores</summary><table><thead><tr><th scope="col">Submission</th><th scope="col">Public ROC-AUC</th></tr></thead><tbody id="score-table"></tbody></table></details>
-</figure>
-<div class="panel"><h3>Final run</h3><p>The selected model combined 75% shallow-tree and 25% interaction-tree predictions in logit space.</p>
-<table><thead><tr><th scope="col">Candidate</th><th scope="col">Mean fold AUC</th></tr></thead><tbody>
-<tr><th scope="row">Logit blend</th><td><strong>0.946537</strong></td></tr><tr><th scope="row">Rank blend</th><td>0.946529</td></tr><tr><th scope="row">Shallow trees</th><td>0.946342</td></tr><tr><th scope="row">Interaction trees</th><td>0.945820</td></tr></tbody></table>
-<p class="hint">Local results use three stratified folds. The public score comes from Kaggle’s leaderboard.</p></div>
-</div></section>
-<section id="demo" aria-labelledby="demo-title"><h2 id="demo-title">Try a transaction</h2>
-<p class="subtitle">Change any input or select a preset. This browser demo uses a separate logistic model trained on generated examples.</p>
-<div class="grid demo-grid">
-<section class="panel"><h2>Transaction details</h2><div class="presets"><button type="button" data-preset="routine">Routine purchase</button><button type="button" data-preset="unusual">Unusual activity</button></div>
-<form id="transaction">
-<div id="fields" class="fields"></div>
-<button class="primary" id="submit" disabled>Score transaction</button>
-</form></section>
-<section class="panel result" aria-labelledby="result-heading">
-<h2 id="result-heading">Model output</h2>
-<p id="source" class="source">Loading synthetic demo model…</p>
-<div class="value" id="score" aria-live="polite">—</div>
-<progress id="meter" max="1" value="0" aria-label="Model score"></progress>
-<p class="hint" id="summary">Run a transaction to see the estimated fraud probability.</p>
-<h3>Top model contributions</h3><ol id="contributions"></ol>
-<p class="hint">Contributions show how inputs shift the model’s log-odds relative to the training mean.</p>
-<details><summary>Model and validation</summary><p id="metrics"></p><p>Use synthetic transactions here. Scores are for demonstration and should never be used to approve or reject payments.</p>
-</details>
-</section></div></section>
-</main>
-<footer class="shell">Danial Aqil · <a href="https://aqillz.github.io/">Portfolio ↗</a></footer>
-</body></html>
+  <a class="skip-link" href="#demo">Skip to simulator</a>
+  <header class="masthead">
+    <div class="shell masthead-inner">
+      <a class="brand" href="./">Fraud Risk Lab</a>
+      <nav aria-label="Main">
+        <a href="#demo">Simulator</a>
+        <a href="#results">Results</a>
+        <a href="https://github.com/Aqillz/fraud-risk-lab">GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="intro">
+      <h1>Predicting credit card fraud</h1>
+      <p>Score a fictional transaction and explore the results of a Kaggle LightGBM experiment.</p>
+    </div>
+
+    <section id="demo" aria-labelledby="demo-title">
+      <div class="simulator">
+        <div class="input-panel">
+          <h2 id="demo-title">Transaction simulator</h2>
+          <p class="panel-intro">Load a sample or enter your own fictional values.</p>
+          <div class="presets" role="group" aria-label="Example transactions">
+            <button type="button" data-preset="routine" aria-pressed="true">Routine purchase</button>
+            <button type="button" data-preset="unusual" aria-pressed="false">Unusual activity</button>
+          </div>
+          <form id="transaction" autocomplete="off">
+            <div id="fields" class="fields"></div>
+            <div id="flags" class="fields flags"></div>
+            <button class="primary" id="submit" disabled>Score transaction <span aria-hidden="true">→</span></button>
+          </form>
+          <noscript><p class="panel-intro">Enable JavaScript to score transactions.</p></noscript>
+        </div>
+
+        <section class="output-panel" aria-labelledby="result-heading">
+          <h2 id="result-heading">Estimated fraud probability</h2>
+          <output class="score" id="score" form="transaction" aria-live="polite">—</output>
+          <progress class="probability" id="meter" max="1" value="0" aria-label="Estimated fraud probability"></progress>
+          <p id="summary" class="score-status" role="status">Loading the synthetic model…</p>
+
+          <div class="signals">
+            <h3>Largest score contributions</h3>
+            <ul id="contributions" class="signal-list"></ul>
+            <p class="signal-caption">Signed values show each input’s effect on the model’s log-odds.</p>
+          </div>
+          <details class="model-details">
+            <summary>Model and validation</summary>
+            <p id="metrics"></p>
+            <p>This educational logistic model was trained on generated examples. Use it with fictional transactions.</p>
+            <a href="https://github.com/Aqillz/fraud-risk-lab/blob/main/MODEL.md">Read the model notes <span aria-hidden="true">↗</span></a>
+          </details>
+        </section>
+      </div>
+    </section>
+
+    <section id="results" class="results" aria-labelledby="results-title">
+      <header class="results-head">
+        <h2 id="results-title">Kaggle results</h2>
+        <a href="https://www.kaggle.com/competitions/playground-series-s6e11">Playground Series S6E11 <span aria-hidden="true">↗</span></a>
+      </header>
+      <dl class="stats">
+        <div><dt>Best public ROC-AUC</dt><dd>0.94856</dd></div>
+        <div><dt>Mean fold ROC-AUC</dt><dd>0.946537</dd></div>
+        <div><dt>Gain over submission 1</dt><dd>+0.00238</dd></div>
+      </dl>
+      <div class="analysis-grid">
+        <figure class="trend">
+          <h3>Public ROC-AUC by submission</h3>
+          <canvas id="score-chart" role="img" aria-label="Public ROC-AUC rose from 0.94618 on submission 1 to 0.94856 on submission 10, with a low of 0.94376 on submission 5."></canvas>
+          <figcaption>Submission number</figcaption>
+          <details class="score-history">
+            <summary>View all 10 scores</summary>
+            <table>
+              <thead><tr><th scope="col">Submission</th><th scope="col">Public ROC-AUC</th></tr></thead>
+              <tbody id="score-table">
+                <tr><th scope="row">1</th><td>0.94618</td></tr>
+                <tr><th scope="row">2</th><td>0.94679</td></tr>
+                <tr><th scope="row">3</th><td>0.94663</td></tr>
+                <tr><th scope="row">4</th><td>0.94675</td></tr>
+                <tr><th scope="row">5</th><td>0.94376</td></tr>
+                <tr><th scope="row">6</th><td>0.94629</td></tr>
+                <tr><th scope="row">7</th><td>0.94805</td></tr>
+                <tr><th scope="row">8</th><td>0.94847</td></tr>
+                <tr><th scope="row">9</th><td>0.94833</td></tr>
+                <tr class="selected"><th scope="row">10</th><td>0.94856</td></tr>
+              </tbody>
+            </table>
+          </details>
+        </figure>
+        <div class="run">
+          <h3>Final LightGBM run</h3>
+          <p>Three stratified folds and six fits in 8 min 18 s. The winning blend weights shallow trees at 75% and interaction trees at 25% in logit space.</p>
+          <table>
+            <thead><tr><th scope="col">Candidate</th><th scope="col">Mean fold AUC</th></tr></thead>
+            <tbody>
+              <tr class="selected"><th scope="row">Logit blend</th><td>0.946537</td></tr>
+              <tr><th scope="row">Rank blend</th><td>0.946529</td></tr>
+              <tr><th scope="row">Shallow trees</th><td>0.946342</td></tr>
+              <tr><th scope="row">Interaction trees</th><td>0.945820</td></tr>
+            </tbody>
+          </table>
+          <p class="table-note">Mean fold AUC uses local validation. The leaderboard uses Kaggle’s public test partition.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <span>Danial Aqil</span>
+    <a href="https://aqillz.github.io/">Portfolio <span aria-hidden="true">↗</span></a>
+  </footer>
+</body>
+</html>

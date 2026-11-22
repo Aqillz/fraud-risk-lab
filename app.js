@@ -3,7 +3,7 @@ const fields = [
   ["amount_usd", "Amount (USD)", 0.01, 0.01],
   ["time_of_day_hour", "Hour of day (0–23)", 1, 0, 23],
   ["distance_from_home_km", "Distance from home (km)", 0.01, 0],
-  ["txn_count_last_24h", "Transactions in 24 hours", 1, 0],
+  ["txn_count_last_24h", "Transactions in last 24 hours", 1, 0],
   ["hours_since_last_txn", "Hours since last transaction", 0.01, 0],
   ["cvv_retry_count", "CVV retries", 1, 0],
   ["used_vpn", "VPN used"],
@@ -26,7 +26,7 @@ function validateModel(candidate) {
       !vectors.every((key) => Array.isArray(candidate[key]) &&
         candidate[key].length === size && candidate[key].every(Number.isFinite)) ||
       candidate.scale.some((scale) => scale <= 0)) {
-    throw new Error("Choose a compatible browser-model.json export.");
+    throw new Error("Invalid demo model export.");
   }
   return candidate;
 }
@@ -44,6 +44,9 @@ if (typeof module !== "undefined") module.exports = { predict, validateModel, pr
 if (typeof document !== "undefined") {
   let activeModel;
   const form = byId("transaction");
+  const presetButtons = document.querySelectorAll("[data-preset]");
+  const status = byId("summary");
+  const contributionsList = byId("contributions");
 
   for (const [name, title, step, min, max] of fields) {
     const label = document.createElement("label");
@@ -61,7 +64,7 @@ if (typeof document !== "undefined") {
       if (max != null) input.max = max;
     }
     label.append(input);
-    byId("fields").append(label);
+    byId(step == null ? "flags" : "fields").append(label);
   }
 
   function render() {
@@ -73,28 +76,39 @@ if (typeof document !== "undefined") {
         style: "percent", maximumFractionDigits: 2,
       });
       byId("meter").value = probability;
-      byId("summary").textContent = "Estimated fraud probability for this example.";
+      status.textContent = "Calculated in your browser using a synthetic model.";
       const items = contributions.map((value, i) => ({ value, label: fields[i][1] }))
         .sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 4);
-      byId("contributions").replaceChildren(...items.map(({ value, label }) => {
+      const maxContribution = Math.abs(items[0].value) || 1;
+      contributionsList.replaceChildren(...items.map(({ value, label }) => {
         const row = document.createElement("li");
+        const name = document.createElement("span");
+        name.textContent = label;
+        const bar = document.createElement("progress");
+        bar.className = "signal-bar";
+        bar.max = maxContribution;
+        bar.value = Math.abs(value);
+        bar.setAttribute("aria-hidden", "true");
         const delta = document.createElement("span");
         delta.className = "delta";
-        delta.textContent = ` ${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
-        row.append(label, delta);
+        if (value < 0) {
+          bar.classList.add("negative");
+          delta.classList.add("negative");
+        }
+        delta.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+        row.append(name, bar, delta);
         return row;
       }));
     } catch (error) {
       byId("score").textContent = "—";
       byId("meter").value = 0;
-      byId("summary").textContent = error.message;
-      byId("contributions").replaceChildren();
+      status.textContent = error.message;
+      contributionsList.replaceChildren();
     }
   }
 
-  function useModel(model, label) {
+  function useModel(model) {
     activeModel = model;
-    byId("source").textContent = label;
     const result = model.metrics;
     const valid = (v) => Number.isFinite(v) && v >= 0 && v <= 1;
     byId("metrics").textContent = valid(result?.roc_auc) && valid(result?.average_precision)
@@ -104,22 +118,30 @@ if (typeof document !== "undefined") {
     render();
   }
 
+  function selectPreset(name) {
+    for (const button of presetButtons) {
+      button.setAttribute("aria-pressed", String(button.dataset.preset === name));
+    }
+  }
+
   function setPreset(name) {
     fields.forEach(([field], i) => { byId(field).value = presets[name][i]; });
+    selectPreset(name);
     render();
   }
-  for (const button of document.querySelectorAll("[data-preset]")) {
+  for (const button of presetButtons) {
     button.addEventListener("click", () => setPreset(button.dataset.preset));
   }
+  form.addEventListener("input", () => {
+    selectPreset(null);
+    if (activeModel) status.textContent = "Inputs changed. Score the transaction to update this result.";
+  });
   form.addEventListener("submit", (event) => { event.preventDefault(); render(); });
   setPreset("routine");
   fetch("demo-model.json").then((response) => {
     if (!response.ok) throw new Error("Cannot load model.");
     return response.json();
-  }).then((candidate) => {
-    const model = validateModel(candidate);
-    useModel(model, model.source);
-  }).catch(() => {
-    if (!activeModel) byId("source").textContent = "Demo model unavailable. Try refreshing the page.";
+  }).then(validateModel).then(useModel).catch(() => {
+    status.textContent = "Demo model unavailable. Refresh the page to try again.";
   });
 }

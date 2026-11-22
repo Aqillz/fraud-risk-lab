@@ -1,45 +1,55 @@
 "use strict";
-const historyValues = [0.94618, 0.94679, 0.94663, 0.94675, 0.94376, 0.94629, 0.94805, 0.94847, 0.94833, 0.94856];
-const table = document.getElementById("score-table");
-for (const [index, value] of historyValues.entries()) {
-  const row = table.insertRow();
-  row.insertCell().textContent = index + 1;
-  row.insertCell().textContent = value.toFixed(5);
-}
+
+const historyValues = Array.from(document.querySelectorAll("#score-table td"),
+  (cell) => Number(cell.textContent));
+const last = historyValues.length - 1;
 const canvas = document.getElementById("score-chart");
+
 function drawScores() {
   const width = canvas.clientWidth;
-  const height = 220;
+  const height = canvas.clientHeight;
   const ratio = window.devicePixelRatio || 1;
   canvas.width = Math.round(width * ratio);
-  canvas.height = height * ratio;
+  canvas.height = Math.round(height * ratio);
   const ctx = canvas.getContext("2d");
+  if (!ctx) return;
   ctx.scale(ratio, ratio);
-  const left = 46, right = width - 20, top = 18, bottom = height - 35;
-  const x = i => left + (right - left) * i / 9;
-  const y = v => bottom - (bottom - top) * (v - .943) / .006;
-  ctx.font = "12px system-ui";
-  ctx.fillStyle = "#54646b";
-  ctx.strokeStyle = "#dce4e4";
+
+  const style = getComputedStyle(canvas);
+  const color = (name) => style.getPropertyValue(name).trim();
+  const left = 47, right = width - 15, top = 14, bottom = height - 25;
+  const x = (i) => left + (right - left) * i / last;
+  const y = (v) => bottom - (bottom - top) * (v - .943) / .006;
+
+  ctx.font = `11px ${color("--mono")}`;
+  ctx.fillStyle = color("--muted");
+  ctx.strokeStyle = color("--line");
   for (const tick of [.943, .945, .947, .949]) {
-    ctx.fillText(tick.toFixed(3), 0, y(tick) + 4);
+    ctx.fillText(tick.toFixed(3), 0, y(tick) + 3);
     ctx.beginPath();
     ctx.moveTo(left, y(tick));
     ctx.lineTo(right, y(tick));
     ctx.stroke();
   }
-  for (const i of [0, 2, 4, 6, 9]) ctx.fillText(String(i + 1), x(i) - 5, bottom + 22);
-  ctx.strokeStyle = "#126b64";
-  ctx.lineWidth = 2.4;
+  ctx.textAlign = "center";
+  for (const i of [0, 2, 4, 6, last]) ctx.fillText(String(i + 1), x(i), bottom + 18);
+
+  ctx.strokeStyle = color("--ink");
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  historyValues.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)));
+  ctx.moveTo(x(0), y(historyValues[0]));
+  for (let i = 1; i <= last; i += 1) ctx.lineTo(x(i), y(historyValues[i]));
   ctx.stroke();
-  historyValues.forEach((v, i) => {
-    ctx.fillStyle = i === 9 ? "#126b64" : "#fff";
+
+  historyValues.forEach((value, i) => {
+    const final = i === last;
+    ctx.strokeStyle = color(final ? "--accent" : "--ink");
+    ctx.fillStyle = color(final ? "--accent" : "--paper");
     ctx.beginPath();
-    ctx.arc(x(i), y(v), i === 9 ? 5 : 3, 0, Math.PI * 2);
+    ctx.arc(x(i), y(value), final ? 5 : 3, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
   });
 }
+
 new ResizeObserver(drawScores).observe(canvas);
